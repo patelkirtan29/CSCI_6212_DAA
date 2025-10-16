@@ -2,11 +2,12 @@ import random
 import time
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 def generate_points(n):
     return [(random.randint(0, 10000), random.randint(0, 10000)) for _ in range(n)]
 
-def naive_algorithm(points):
+def brute_force_algo(points):
     pareto = []
     for p in points:
         if all(not (q[0] > p[0] and q[1] > p[1]) for q in points):
@@ -35,7 +36,7 @@ def divide_and_conquer(points):
     points.sort()
     return dac(points)
 
-def output_sensitive(points):
+def balanced_binary_algo(points):
     points.sort(reverse=True)
     pareto = []
     max_y = -1
@@ -62,16 +63,15 @@ def measure_time(algorithm, points, runs=3):
         total += time.time() - start
     return total / runs
 
-sizes = [100, 500, 1000, 2559, 5000, 8000, 10000, 10**5]
+sizes = [100, 500, 1000, 5000, 8000, 10000, 10**5]
 algorithms = {
-    "Naive O(nh)": naive_algorithm,
-    "Divide & Conquer O(n log n)": divide_and_conquer,
-    "Output-sensitive O(n log h)": output_sensitive,
+    "Brute Force O(nh)": brute_force_algo,
+    "Divide & Conquer O(nlogn)": divide_and_conquer,
+    "Balance Binary Tree O(nlogh)": balanced_binary_algo,
     "Sorted Input O(n)": sorted_input
 }
 
 results = {name: [] for name in algorithms}
-
 for n in sizes:
     points = generate_points(n)
     sorted_points = sorted(points)
@@ -86,11 +86,22 @@ def normalize_curve(curve, scale):
 
 n_vals = np.array(sizes)
 theoretical_curves = {
-    "Naive O(nh)": normalize_curve(n_vals**2, max(results["Naive O(nh)"])),
-    "Divide & Conquer O(n log n)": normalize_curve(n_vals * np.log2(n_vals), max(results["Divide & Conquer O(n log n)"])),
-    "Output-sensitive O(n log h)": normalize_curve(n_vals * np.log2(np.sqrt(n_vals)), max(results["Output-sensitive O(n log h)"])),
+    "Brute Force O(nh)": normalize_curve(n_vals**2, max(results["Brute Force O(nh)"])),
+    "Divide & Conquer O(nlogn)": normalize_curve(n_vals * np.log2(n_vals), max(results["Divide & Conquer O(nlogn)"])),
+    "Balance Binary Tree O(nlogh)": normalize_curve(n_vals * np.log2(np.sqrt(n_vals)), max(results["Balance Binary Tree O(nlogh)"])),
     "Sorted Input O(n)": normalize_curve(n_vals, max(results["Sorted Input O(n)"]))
 }
+
+# logs 
+for name in algorithms.keys():
+    print(f"\n===== {name} =====")
+    print(f"{'n':>10} | {'Experimental (s)':>20} | {'Theoretical (scaled)':>25}")
+    print("-" * 60)
+    
+    for i, n in enumerate(sizes):
+        exp_time = results[name][i]
+        theo_time = theoretical_curves[name][i]
+        print(f"{n:>10} | {exp_time:>20.6f} | {theo_time:>25.6f}")
 
 plt.figure(figsize=(10, 6))
 
@@ -102,7 +113,7 @@ for name, times in results.items():
 for name, curve in theoretical_curves.items():
     plt.plot(sizes, curve, linestyle='--', label=f"{name} (Theoretical)")
 
-plt.title("Staircase / Pareto-optimal Algorithms: Experimental vs Theoretical")
+plt.title("Staircase / Pareto-optimalc Algorithms: Experimental vs Theoretical")
 plt.xlabel("Input Size (n)")
 plt.ylabel("Execution Time (seconds)")
 plt.legend()
